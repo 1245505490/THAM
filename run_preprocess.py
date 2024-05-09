@@ -23,7 +23,6 @@ if __name__ == '__main__':
     data_path = 'data'
     dataset = 'mimic4'
     seed = 18
-
     dataset_path = os.path.join(data_path, dataset)
     raw_path = os.path.join(dataset_path, 'raw')
     standard_path = os.path.join(dataset_path, 'standard')
@@ -33,25 +32,17 @@ if __name__ == '__main__':
         os.makedirs(raw_path)
         print('please put the CSV files in `data/%s/raw`' % dataset)
         exit()
-
     parsed_path = os.path.join(dataset_path, 'parsed')
     patient_admission = pickle.load(open(os.path.join(parsed_path, 'patient_admission.pkl'), 'rb'))
     admission_codes = pickle.load(open(os.path.join(parsed_path, 'admission_codes.pkl'), 'rb'))
     admission_drugs = pickle.load(open(os.path.join(parsed_path, 'admission_drugs.pkl'), 'rb'))
-
     patient_num = len(patient_admission)
-    # 最大就诊次数
     max_admission_num = max([len(admissions) for admissions in patient_admission.values()])
-    # 平均就诊次数
     avg_admission_num = sum([len(admissions) for admissions in patient_admission.values()]) / patient_num
-    # 单次就诊最多疾病
     max_visit_code_num = max([len(codes) for codes in admission_codes.values()])
-    # 就诊平均疾病数
     avg_visit_code_num = sum([len(codes) for codes in admission_codes.values()]) / len(admission_codes)
-
     max_visit_drug_num = max([len(codes) for codes in admission_drugs.values()])
     avg_visit_drug_num = sum([len(codes) for codes in admission_drugs.values()]) / len(admission_drugs)
-
     print('patient num: %d' % patient_num)
     print('max admission num: %d' % max_admission_num)
     print('mean admission num: %.2f' % avg_admission_num)
@@ -66,7 +57,6 @@ if __name__ == '__main__':
     print('There are %d codes' % code_num)
     drug_num = len(drug_map)
     print('There are %d drugs' % drug_num)
-
     train_pids, valid_pids, test_pids = split_patients(
         patient_admission=patient_admission,
         admission_codes=admission_codes,
@@ -97,7 +87,6 @@ if __name__ == '__main__':
         'drug_code_adj': drug_code_adj,
         'code_code_adj': code_code_adj
     }, open(os.path.join(standard_path, 'auxiliary.pkl'), 'wb'))
-
     if not os.path.exists(encoded_path):
         os.makedirs(encoded_path)
     print('saving encoded data ...')
@@ -111,7 +100,6 @@ if __name__ == '__main__':
         'valid_pids': valid_pids,
         'test_pids': test_pids
     }, open(os.path.join(encoded_path, 'pids.pkl'), 'wb'))
-
     print('saving standard data ...')
     train_path = os.path.join(standard_path, 'train')
     valid_path = os.path.join(standard_path, 'valid')

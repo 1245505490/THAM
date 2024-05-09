@@ -46,7 +46,6 @@ class CGLFeatureExtractor(nn.Module):
         self.hierarchical_embedding_layer = HierarchicalEmbedding(code_levels=config['code_levels'],
                                                                   code_num_in_levels=config['code_num_in_levels'],
                                                                   code_dims=hyper_params['code_dims']).to(self.device)
-        # self.disease_embedding_layer = Embedding_a(code_nums=config['code_num'], code_dims=hyper_params['input_dim']).to(self.device)
         self.drug_embedding_layer = DrugEmbedding(drug_num=config['drug_num'], drug_dim=hyper_params['drug_dim']).to(
             self.device)
         code_dim = np.sum(hyper_params['code_dims'])
@@ -71,59 +70,30 @@ class CGLFeatureExtractor(nn.Module):
         self.quiry_weight_layer = nn.Linear(code_dim, 2)
         self.quiry_weight_layer2 = nn.Linear(code_dim, 1)
         self.attention = Attention(code_dim, attention_dim=hyper_params['attention_dim']).to(self.device)
-        # self.visit_temporal_embedding_layer = TemporalEmbedding(
-        #     rnn_dims=hyper_params['visit_rnn_dims'],
-        #     attention_dim=hyper_params['attention_dim'],
-        #     max_seq_len=self.max_visit_len, input_dim=code_dim, dropout=hyper_params['dropout'],
-        #     patch_len=hyper_params['patch_len'], d_model=hyper_params['d_model'], device=self.device).to(self.device)
 
     def forward(self, inputs):
         visit_codes = inputs['visit_codes']
         visit_lens = inputs['visit_lens']
-        # code_mask = inputs['code_mask']
-        # batchsize,max_visit_len
         intervals = inputs['intervals']
         visit_mask = seq_mask(visit_lens, self.max_visit_len)
         mask_final = final_mask(visit_lens, self.max_visit_len)
         mask_mult = get_multmask(visit_mask)
-        # code_num+1,code_dim
         code_embeddings = self.hierarchical_embedding_layer()
-        # code_embeddings = self.disease_embedding_layer()
-        # drug_num,drug_dim
         drug_embeddings = self.drug_embedding_layer()
         drug_embeddings, code_embeddings = self.gcn(drug_embeddings=drug_embeddings, code_embeddings=code_embeddings)
-        # batch_size, max_visit_len,code_dim
         visits_embeddings = self.visit_embedding_layer(code_embeddings=code_embeddings, visit_codes=visit_codes,
                                                        visit_lens=visit_lens)
-        # output, _ = self.visit_temporal_embedding_layer(visits_embeddings, visit_lens)
-        # return output
-
-        # batch_size, max_visit_len, code_dim
         features = self.feature_encoder(visits_embeddings, intervals, visit_mask, visit_lens)
-
         final_statues = features * mask_final.unsqueeze(-1)
-        # # batch_size, 1, code_dim
         final_statues = final_statues.sum(1, keepdim=True)
         quiryes = self.leakyRelu(self.quiry_layer(final_statues))
-        # quiryes = self.relu(self.quiry_layer(final_statues))
-        # # batch_size, max_visit_len,1
-        # self_weight = self.get_self_attention(features, mask_mult.unsqueeze(-1))
         _, self_weight = self.attention(features, visit_mask)
         self_weight = self_weight.unsqueeze(-1)
-        # # batch_size, max_visit_len,1
         time_weight = self.time_encoder(intervals, quiryes, mask_mult).unsqueeze(-1)
-        # # batch_size, 1, 2
-        # attention_weight = torch.softmax(self.quiry_weight_layer(final_statues), 2)
         attention_weight = torch.softmax(self.quiry_weight_layer2(final_statues), 2)
-        # # batch_size, max_visit_len, 2
         total_weight = torch.cat((time_weight, self_weight), 2)
-        # total_weight = self_weight
-        # # batch_size, max_visit_len, 1
         total_weight = torch.sum(total_weight * attention_weight, 2, keepdim=True)
-        # # batch_size, max_visit_len, 1
         total_weight = total_weight / (torch.sum(total_weight, 1, keepdim=True) + 1e-8)
-        # # batch_size, max_visit_len, code_dim
         weighted_features = features * total_weight
-        # # batch_size,code_dim
         output = torch.sum(weighted_features, 1)
         return output

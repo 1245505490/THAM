@@ -14,22 +14,18 @@ def parse_icd9_range(range_: str) -> (str, str, int, int):
     if ranges[0][0] == 'V':
         prefix = 'V'
         format_ = '%02d'
-        # start:01 end:09
         start, end = int(ranges[0][1:]), int(ranges[1][1:])
     elif ranges[0][0] == 'E':
         prefix = 'E'
         format_ = '%03d'
-        # start:840 end:845
         start, end = int(ranges[0][1:]), int(ranges[1][1:])
     else:
         prefix = ''
         format_ = '%03d'
         if len(ranges) == 1:
-            # start: 282 ,end : 283
             start = int(ranges[0])
             end = start + 1
         else:
-            # start:1,end:9
             start, end = int(ranges[0]), int(ranges[1])
     return prefix, format_, start, end
 
