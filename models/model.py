@@ -22,7 +22,7 @@ class Model(nn.Module):
     def __init__(self, config, hyper_params):
         super().__init__()
         device = config['device']
-        self.cgl = CGLFeatureExtractor(config, hyper_params).to(device)
+        self.cgl = HGLFeatureExtractor(config, hyper_params).to(device)
         self.classifier = Classifier(input_size=hyper_params['input_dim'], output_size=hyper_params['output_dim'],
                                      dropout_rate=hyper_params['dropout']).to(device)
 
@@ -37,7 +37,7 @@ class Model(nn.Module):
         return output
 
 
-class CGLFeatureExtractor(nn.Module):
+class HGLFeatureExtractor(nn.Module):
     def __init__(self, config, hyper_params):
         super().__init__()
         self.config = config
